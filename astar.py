@@ -1,4 +1,5 @@
 import pygame
+import math
 # http://www.raywenderlich.com/4946/introduction-to-a-pathfinding
 
 
@@ -73,8 +74,14 @@ class GridWorld():
 
     def _add_swamp(self, mouse_pos):
         """ Adds a swamp tile in the cell that mouse_pos indicates """
-        # insert swamp code here.
-        pass
+        swamp_coord = (mouse_pos[0]//50, mouse_pos[1]//50)
+        if self._is_occupied(swamp_coord):
+            if self.actors[swamp_coord].removable:
+                self.actors.pop(swamp_coord, None)
+        elif swamp_coord != self.cake.cell_coordinates:
+            swamp = ObstacleTile(swamp_coord, self, './images/swamp.jpg',
+                                is_unpassable=False, terrain_cost=3)
+            self.actors[swamp_coord] = swamp
 
     def _add_lava(self, mouse_pos):
         """ Adds a lava tile in the cell that mouse_pos indicates """
@@ -108,15 +115,16 @@ class GridWorld():
                 elif event.type is pygame.MOUSEBUTTONDOWN:
                     if self.add_tile_type == 'lava':
                         self._add_lava(event.pos)
-                    # insert swamp code here
+                    elif self.add_tile_type == 'swamp':
+                        self._add_swamp(event.pos)
                 elif event.type is pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
                         self.paul.run_astar(self.cake.cell_coordinates, self)
                         self.paul.get_path()
                     elif event.key == pygame.K_l:
                         self.add_tile_type = 'lava'
-                    # insert swamp code here
-
+                    elif event.key == pygame.K_s:
+                        self.add_tile_type = 'swamp'
 
 class Actor(object):
     def __init__(self, cell_coordinates, world, image_loc,
@@ -168,9 +176,9 @@ class Cell():
 
     def draw(self):
         COST_TO_DRAW = ''
-        # COST_TO_DRAW = self.g_cost
-        # COST_TO_DRAW = self.h_cost
-        # COST_TO_DRAW = self.f_cost
+        COST_TO_DRAW = self.g_cost
+        #COST_TO_DRAW = self.h_cost
+        #COST_TO_DRAW = self.f_cost
         line_width = 2
         rect = pygame.Rect(self.coordinates, self.dimensions)
         pygame.draw.rect(self.draw_screen, self.color, rect, line_width)
@@ -196,15 +204,22 @@ class Paul(Actor):
         """ returns list of valid coords that are adjacent to the argument,
             open, and not in the closed list. """
         # modify directions and costs as needed
-        directions = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+        rad2 = math.sqrt(2)
+        directions = [(1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1),
+            (-1, -1), (1, -1), (2, 0), (0, 2), (-2, 0), (0, -2)]
         all_adj = [self.world._add_coords(coords, d) for d in directions]
         in_bounds = [self.is_valid(c) for c in all_adj]
         costs = []
         open_adj = []
         for i, coord in enumerate(all_adj):
-            if(in_bounds[i]):
-                costs.append(1 + self.world.get_terrain_cost(coord))
-                open_adj.append(coord)
+                if(in_bounds[i]):
+                    if math.sqrt((coords[0] - coord[0])**2 + (coords[1] - coord[1])**2) == math.sqrt(2):
+                        costs.append(3 + self.world.get_terrain_cost(coord))
+                    elif math.sqrt((coords[0] - coord[0])**2 + (coords[1] - coord[1])**2) == 2:
+                        costs.append(8 + self.world.get_terrain_cost(coord))
+                    else:
+                        costs.append(1 + self.world.get_terrain_cost(coord))
+                    open_adj.append(coord)
         return open_adj, costs
 
     def is_valid(self, coord):
