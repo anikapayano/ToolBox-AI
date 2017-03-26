@@ -17,4 +17,4 @@ to generate the shortest path to the destination tile. This score is updated
 every time the character moves. In this image, the final F score is 18. This
 matches the score it should have if the G and H scores were added together.
 
-![F Score][http:url/to/f_score.png]
+![F Score](http:url/to/f_score.png)
